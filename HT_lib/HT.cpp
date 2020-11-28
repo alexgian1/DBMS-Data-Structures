@@ -2,7 +2,9 @@
 #include <string>
 #include <fstream>
 #include "HT.hpp"
-#include "../BF_lib/BF.h"
+extern "C"{  //link with C library
+    #include "../BF_lib/BF.h"  
+}
 
 
 using namespace std;
