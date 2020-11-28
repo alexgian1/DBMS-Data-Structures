@@ -1,0 +1,1 @@
+int HT_CreateIndex(std::string filename, char attrType, std::string attrName, int attrLength, int buckets);
