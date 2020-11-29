@@ -1,4 +1,3 @@
-#include <string>
 
 typedef struct{
     int id;
@@ -10,9 +9,13 @@ typedef struct{
 typedef struct{
     int fileDesc;
     char attrType;
-    std::string attrName;
+    char* attrName;
     int attrLength;
     long int numBuckets;
 }HT_info;
 
-int HT_CreateIndex(std::string filename, char attrType, std::string attrName, int attrLength, int buckets);
+
+
+int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength, int buckets);
+
+HT_info* HT_OpenIndex(char* filename);
