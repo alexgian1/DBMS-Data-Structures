@@ -14,16 +14,25 @@ int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength
     int blockFile;
     if ( (blockFile = BF_OpenFile(filename)) != 0 ) return -1;
 
-    HT_info info = {blockFile, attrType, attrName, attrLength, buckets};  //add HT_info at the first block
-    void* HTinfoBlock;
-    if (BF_AllocateBlock(blockFile) < 0) return -1;  //allocate a block for HT_INFO
-    if (BF_ReadBlock(blockFile,0,&HTinfoBlock) < 0) return -1;  //store HT_info block location to HTinfoBlock pointer
-    memcpy(HTinfoBlock, &info, sizeof(HT_info));  //copy HT_info contents to HTinfoBlock
-    if (BF_WriteBlock(blockFile,0) < 0) return -1;
-    
     for (int i=1; i<=buckets; i++){
         if (BF_AllocateBlock(blockFile) < 0) return -1;  //Allocate 1 empty block for every bucket
     }
+
+    //add HT_info at the first block
+    HT_info info = {blockFile, attrType, attrName, attrLength, buckets};  
+    void* HTinfoBlock;
+    if (BF_ReadBlock(blockFile,0,&HTinfoBlock) < 0) return -1;  //store HT_info block location to HTinfoBlock pointer
+    memcpy(HTinfoBlock, &info, sizeof(HT_info));  //copy HT_info contents to HTinfoBlock
+
+    if (BF_AllocateBlock(blockFile) < 0) return -1;   //Allocate a new block after HT_info block
+    int lastAllocatedBlock = BF_GetBlockCounter(blockFile)-1;   //The index of the new block
+    
+    void* lastBlockBytes = static_cast<char*>(HTinfoBlock)+504;  //point to the last 8 bytes (size of int) of the block
+    memcpy(lastBlockBytes, &lastAllocatedBlock, sizeof(int));  //copy the index of the allocated block to the last 8 bytes of HT_info block
+
+
+    if (BF_WriteBlock(blockFile,0) < 0) return -1;
+    
     return 0;   //No error => return 0
 }
 
