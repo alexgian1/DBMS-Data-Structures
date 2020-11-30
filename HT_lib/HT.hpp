@@ -1,3 +1,4 @@
+#include <string>
 
 typedef struct{
     int id;
@@ -12,10 +13,21 @@ typedef struct{
     char* attrName;
     int attrLength;
     long int numBuckets;
+    std::string indexFilename;
 }HT_info;
 
+//------------------------------------------------------------------------------//
 
+int hashFunction(int id, int buckets);
+
+//------------------------------------------------------------------------------//
 
 int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength, int buckets);
 
 HT_info* HT_OpenIndex(char* filename);
+
+int HT_CloseIndex(HT_info* header_info);
+
+int HT_InsertEntry(HT_info header_info, Record record);
+
+
