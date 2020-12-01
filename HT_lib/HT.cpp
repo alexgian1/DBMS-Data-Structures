@@ -18,11 +18,24 @@ int getNextBlock(int blockFile, int currentBlock){
     //Returns the index of the next block. If there is no block after the current, returns -1.
     int nextBlockIndex;
     void* currentBlockPtr;
+    
     BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
-    void* lastBlockBytes = static_cast<char*>(currentBlockPtr)+504;  //point to the last 8 bytes (size of int) of the block
+    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
     if (lastBlockBytes == NULL) return -1;
-    memcpy(lastBlockBytes, &nextBlockIndex, sizeof(int));  //copy the index of the next block to the 
+    cout << "Searching for block at: " << lastBlockBytes << endl;
+    memcpy(&nextBlockIndex, lastBlockBytes, sizeof(int));  //copy the index of the next block to the 
+    cout << "reached" << endl;
     return nextBlockIndex;
+}
+
+void setNextBlock(int blockFile, int currentBlock, int nextBlock){
+    //Sets the index of the next block.
+    void* currentBlockPtr;
+    
+    BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
+    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
+    memcpy(lastBlockBytes, &nextBlock, sizeof(int));  //copy the index of the next block to the end of the block
+    cout << "reached" << endl;
 }
 
 //-----------------------------------------------------------------------------------------------------------//
@@ -30,8 +43,8 @@ int getNextBlock(int blockFile, int currentBlock){
 int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength, int buckets){
     //Create a hashtable index:
     //The n-th line of the file is the location of the n-th bucket of the hash table
-    string HTIndexFilename(filename);
-    HTIndexFilename.append("Index");   // Add "Index" at the end of filename
+    string HTIndexFilename = "index";
+    //HTIndexFilename.append("Index");   // Add "Index" at the end of filename
     ofstream HTIndex(HTIndexFilename);
 
     //Create the blockfile and allocate blocks
@@ -44,11 +57,14 @@ int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength
     for (int i=1; i<=buckets; i++){
         if (BF_AllocateBlock(blockFile) < 0) return -1;  //Allocate 1 empty block for every bucket
         HTIndex << BF_GetBlockCounter(blockFile)-1 << endl; //Add the index of the last allocated block to HTIndex file
+        setNextBlock(blockFile, BF_GetBlockCounter(blockFile)-1, -1);  //Set the next block to be -1
+
     }
 
     //add HT_info at the first block
-    //-------PROBLEM: HTIndexFilename NOT SAVED
-    HT_info info = {blockFile, attrType, attrName, attrLength, buckets, HTIndexFilename};  
+    //-------PROBLEM: HTIndexFilename NOT SAVED if a variable is passed instead of "index"
+    
+    HT_info info = {blockFile, attrType, attrName, attrLength, buckets, "index"}; 
     void* HTinfoBlock;
     if (BF_ReadBlock(blockFile,0,&HTinfoBlock) < 0) return -1;  //store HT_info block location to HTinfoBlock pointer
     memcpy(HTinfoBlock, &info, sizeof(HT_info));  //copy HT_info contents to HTinfoBlock
@@ -56,13 +72,15 @@ int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength
     if (BF_AllocateBlock(blockFile) < 0) return -1;   //Allocate a new block after HT_info block
     int lastAllocatedBlock = BF_GetBlockCounter(blockFile)-1;   //The index of the new block
     
-    void* lastBlockBytes = static_cast<char*>(HTinfoBlock)+504;  //point to the last 8 bytes (size of int) of the block
+    setNextBlock(blockFile,0,lastAllocatedBlock);  //set the next block to be the last allocated block
+    /*
+    cout << "First block is: " << HTinfoBlock << endl;
+    void* lastBlockBytes = static_cast<char*>(HTinfoBlock) + 512 -sizeof(int);  //point to the last 8 bytes (size of int) of the block
+    cout << "Next block saved at: " << lastBlockBytes << endl;
     memcpy(lastBlockBytes, &lastAllocatedBlock, sizeof(int));  //copy the index of the allocated block to the last 8 bytes of HT_info block
-
+    */
 
     if (BF_WriteBlock(blockFile,0) < 0) return -1;
-
-    if (BF_CreateFile(filename) != 0) return -1;
 
     HTIndex.close();
     
@@ -98,18 +116,20 @@ int HT_InsertEntry(HT_info header_info, Record record){
     int hashKey = hashFunction(record.id, header_info.numBuckets);
     string blockNumberStr;
     ifstream HTIndexFile(header_info.indexFilename);   //Open index file of the hashtable and search for line number "hashKey"
-    cout << header_info.indexFilename << endl;
     for (int line=0; line<=hashKey; line++){
         getline(HTIndexFile, blockNumberStr);   //line number n contains the location of the n-th block
-        cout << blockNumberStr << endl;
+        cout << "HT_Index block: " <<blockNumberStr << endl;
     }
     
-
     int blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
 
     if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
-        blockNumber = getNextBlock(header_info.fileDesc, blockNumber);
+        void* block;
+        BF_ReadBlock(header_info.fileDesc, 0, &block);
+        cout << "First block is: " << block << endl;
+        blockNumber = getNextBlock(header_info.fileDesc, 0);
     }
+    
 
     void* recordPtr;
     BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr);

@@ -22,9 +22,10 @@ int main(){
         cout << "HT1 index: " << HT1_info->indexFilename << endl;
     }
     
+    /*
     if (HT_CloseIndex(HT1_info) == 0){
         cout << "File closed sucessfully!" << endl;
-    }
+    }*/
 
     Record record1 = {150,"Name1","Surname1","Address1"};
 

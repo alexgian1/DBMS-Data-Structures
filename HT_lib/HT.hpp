@@ -13,7 +13,7 @@ typedef struct{
     char* attrName;
     int attrLength;
     long int numBuckets;
-    std::string indexFilename;
+    char* indexFilename;
 }HT_info;
 
 //------------------------------------------------------------------------------//
