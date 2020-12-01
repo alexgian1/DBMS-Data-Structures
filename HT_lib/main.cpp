@@ -28,8 +28,21 @@ int main(){
     }*/
 
     Record record1 = {150,"Name1","Surname1","Address1"};
+    Record record2 = {140,"Name2","Surname2","Address2"};
+    Record record3 = {130,"Name3","Surname3","Address3"};
 
     HT_InsertEntry(*HT1_info, record1);
+    cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record2);
+    cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record3);
+    cout << "---------------------------------"<< endl;
+    cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record1);
+    cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record2);
+    cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record3);
 
     return 0;
 }
