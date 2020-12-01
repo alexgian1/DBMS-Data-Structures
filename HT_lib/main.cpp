@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include "HT.hpp"
 
 
@@ -26,10 +27,14 @@ int main(){
     if (HT_CloseIndex(HT1_info) == 0){
         cout << "File closed sucessfully!" << endl;
     }*/
-
+    
+    
     Record record1 = {150,"Name1","Surname1","Address1"};
     Record record2 = {140,"Name2","Surname2","Address2"};
     Record record3 = {130,"Name3","Surname3","Address3"};
+    Record record4 = {120,"Name3","Surname3","Address3"};
+    Record record5 = {110,"Name3","Surname3","Address3"};
+    Record record6 = {100,"Name3","Surname3","Address3"};
 
     HT_InsertEntry(*HT1_info, record1);
     cout << "---------------------------------"<< endl;
@@ -37,12 +42,22 @@ int main(){
     cout << "---------------------------------"<< endl;
     HT_InsertEntry(*HT1_info, record3);
     cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record4);
+    cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record5);
+    cout << "---------------------------------"<< endl;
+    HT_InsertEntry(*HT1_info, record6);
+    cout << "---------------------------------"<< endl;
     cout << "---------------------------------"<< endl;
     HT_InsertEntry(*HT1_info, record1);
     cout << "---------------------------------"<< endl;
     HT_InsertEntry(*HT1_info, record2);
     cout << "---------------------------------"<< endl;
     HT_InsertEntry(*HT1_info, record3);
+    
+
+    
+
 
     return 0;
 }

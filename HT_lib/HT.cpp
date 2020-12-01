@@ -171,10 +171,21 @@ int HT_InsertEntry(HT_info header_info, Record record){
             }
             recordPtr = static_cast<Record*>(recordPtr) + 1;  //go to the next record location
         }
+        
+        if (getNextBlock(header_info.fileDesc, blockNumber) == -1){  //if this block is the final and it is full generate a new
+            cout << "   Block full! Generating new..." << blockNumber << endl;
+            BF_AllocateBlock(header_info.fileDesc);
+            int lastAllocatedBlock = BF_GetBlockCounter(header_info.fileDesc) - 1;
+            setNextBlock(header_info.fileDesc, blockNumber, lastAllocatedBlock);
+        }
+        else{        //Block full, but there is another block after that
+            cout << "   Block full! Next block is: " << blockNumber << endl;
+        }
         blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
-        cout << "   Block full! Next block is: " << blockNumber << endl;
+        
     }
-    //TODO: Generate new block, if current is full.
+
+    
     
     return 0;
 }
