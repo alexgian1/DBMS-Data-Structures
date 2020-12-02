@@ -285,7 +285,7 @@ int Print_All_Records( HP_info header_info)
 			cout << "Block "<<Block << "with "<< node2.cap << " Records :"<<endl;
 			for (int rec=0;rec < node2.cap; rec++)
 			{
-				cout << " Record with : name=" <<node2.arr[rec].name << " "<< node2.arr[rec].surname << " And address : " << node2.arr[rec].address <<"and id:"<<node2.arr[rec].id <<endl;
+				cout << " Record with : name=" <<node2.arr[rec].name << " "<< node2.arr[rec].surname << " And address : " << node2.arr[rec].address <<" and id:"<<node2.arr[rec].id <<endl;
 			}
 
 		}
