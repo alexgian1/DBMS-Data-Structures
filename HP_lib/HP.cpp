@@ -93,7 +93,7 @@ int main(void)
 
 
 
-	HP_GetAllEntries(*info);
+	Print_All_Records(*info);
 
 
 	HP_CloseFile(info);
