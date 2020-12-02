@@ -53,7 +53,7 @@ int main(void)
 
 	Record Dataaaaaaa;
 	Dataaaaaaa.id=7;
-	strcpy(Dataaaaaaa.name," Nicoll");
+	strcpy(Dataaaaaaa.name," Nicolle");
 	strcpy(Dataaaaaaa.surname,"Ded");
 	strcpy(Dataaaaaaa.address,"Thisio");
 
@@ -89,6 +89,37 @@ int main(void)
 	succ=HP_InsertEntry(*info,Dataaaaaaa);
 	succ=HP_InsertEntry(*info,Dataaaaaaaa);
 	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
+
+	succ=HP_InsertEntry(*info,Data);
+	succ=HP_InsertEntry(*info,Dataa);
+	succ=HP_InsertEntry(*info,Dataaa);
+	succ=HP_InsertEntry(*info,Dataaaa);
+	succ=HP_InsertEntry(*info,Dataaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
+
+	succ=HP_InsertEntry(*info,Data);
+	succ=HP_InsertEntry(*info,Dataa);
+	succ=HP_InsertEntry(*info,Dataaa);
+	succ=HP_InsertEntry(*info,Dataaaa);
+	succ=HP_InsertEntry(*info,Dataaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
+
+	succ=HP_InsertEntry(*info,Data);
+	succ=HP_InsertEntry(*info,Dataa);
+	succ=HP_InsertEntry(*info,Dataaa);
+	succ=HP_InsertEntry(*info,Dataaaa);
+	succ=HP_InsertEntry(*info,Dataaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
+
 
 
 
@@ -250,6 +281,7 @@ int HP_InsertEntry( HP_info header_info , Record record )
 			memcpy(this_block,block,sizeof(block_node));
 			this_block->arr[0] = record;
 			this_block->cap = 1;
+			memcpy(block,this_block,sizeof(block_node));
 
 			if (BF_WriteBlock(file_code,0) < 0) return -1;
 			delete this_block;
