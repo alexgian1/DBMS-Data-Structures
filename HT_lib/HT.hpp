@@ -16,11 +16,6 @@ typedef struct{
     char* indexFilename;
 }HT_info;
 
-//------------------------------------------------------------------------------//
-
-int hashFunction(int id, int buckets);
-
-//------------------------------------------------------------------------------//
 
 int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength, int buckets);
 

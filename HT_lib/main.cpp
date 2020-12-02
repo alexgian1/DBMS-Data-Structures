@@ -2,9 +2,9 @@
 #include <fstream>
 #include "HT.hpp"
 
-
-
 using namespace std;
+
+
 
 int main(){
 
@@ -28,6 +28,7 @@ int main(){
         cout << "File closed sucessfully!" << endl;
     }*/
     
+    /*
     
     Record record1 = {150,"Name1","Surname1","Address1"};
     Record record2 = {140,"Name2","Surname2","Address2"};
@@ -55,7 +56,18 @@ int main(){
     cout << "---------------------------------"<< endl;
     HT_InsertEntry(*HT1_info, record3);
     
+    */
 
+   
+   for (int i=1; i<=1000; i+=1){
+        cout << "------------------------------------" << i <<"-----------------------------------------------------" << endl;
+       Record recordi = {i,"Name1","Surname1","Address1"};
+       HT_InsertEntry(*HT1_info, recordi);
+      
+   }
+   
+
+    //allocateNBlocks(HT1_info->fileDesc,100);
     
 
 

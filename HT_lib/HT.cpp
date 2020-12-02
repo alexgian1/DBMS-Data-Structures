@@ -22,7 +22,7 @@ int getNextBlock(int blockFile, int currentBlock){
     BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
     void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
     if (lastBlockBytes == NULL) return -1;
-    memcpy(&nextBlockIndex, lastBlockBytes, sizeof(int));  //copy the index of the next block to the 
+    memcpy(&nextBlockIndex, lastBlockBytes, sizeof(int));  //copy the index of the next block to the
     return nextBlockIndex;
 }
 
@@ -32,6 +32,7 @@ void setNextBlock(int blockFile, int currentBlock, int nextBlock){
     BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
     void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
     memcpy(lastBlockBytes, &nextBlock, sizeof(int));  //copy the index of the next block to the end of the block
+    BF_WriteBlock(blockFile,currentBlock);
 }
 
 //-----------------------------------------------------------------------------------------------------------//
@@ -106,6 +107,8 @@ int HT_CloseIndex(HT_info* header_info){
 
 
 int HT_InsertEntry(HT_info header_info, Record record){
+    cout << "Number of blocks: " << BF_GetBlockCounter(header_info.fileDesc) << endl;
+    
     //Search for the entry 
     bool found = 0;
     int hashKey = hashFunction(record.id, header_info.numBuckets);
@@ -126,8 +129,8 @@ int HT_InsertEntry(HT_info header_info, Record record){
     
 
     void* recordPtr;
-    BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr);
     while (blockNumber != -1){   //While there is a block left to search
+        BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr);
         cout << "Checking block " << blockNumber << endl;
         for(int i=1; i<=RECORDS_PER_BLOCK; i++){
             if (*static_cast<int*>(recordPtr) == 0){  //if no record is saved in this location, go sizeof(Record) bytes forward in the block file
@@ -161,11 +164,13 @@ int HT_InsertEntry(HT_info header_info, Record record){
     BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr);
 
     while (blockNumber != -1){   //While there is a block left to search
+        BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr);
         cout << "Checking block " << blockNumber << endl;
         for(int i=1; i<=RECORDS_PER_BLOCK; i++){
             cout << "   Checking record location " << i << endl;
-            if (*static_cast<int*>(recordPtr) == 0){  //if no record is saved in this location, go sizeof(Record) bytes forward in the block file
+            if (*static_cast<int*>(recordPtr) == 0){  //if no record is saved in this location
                 memcpy(recordPtr, &record, sizeof(Record));   //save the record
+                BF_WriteBlock(header_info.fileDesc,blockNumber);
                 cout << "Record inserted successfully!" << endl;
                 return 0;
             }
@@ -173,10 +178,11 @@ int HT_InsertEntry(HT_info header_info, Record record){
         }
         
         if (getNextBlock(header_info.fileDesc, blockNumber) == -1){  //if this block is the final and it is full generate a new
-            cout << "   Block full! Generating new..." << blockNumber << endl;
+            cout << "   Block full! Generating new...: " << blockNumber << endl;
             BF_AllocateBlock(header_info.fileDesc);
             int lastAllocatedBlock = BF_GetBlockCounter(header_info.fileDesc) - 1;
             setNextBlock(header_info.fileDesc, blockNumber, lastAllocatedBlock);
+            setNextBlock(header_info.fileDesc, lastAllocatedBlock, -1);  //set the next of the new block to be NULL
         }
         else{        //Block full, but there is another block after that
             cout << "   Block full! Next block is: " << blockNumber << endl;
@@ -185,7 +191,5 @@ int HT_InsertEntry(HT_info header_info, Record record){
         
     }
 
-    
-    
-    return 0;
+    return -1;
 }
