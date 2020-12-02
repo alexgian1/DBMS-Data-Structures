@@ -69,17 +69,48 @@ int main(void)
 	strcpy(Dataaaaaaaaa.surname,"Tow");
 	strcpy(Dataaaaaaaaa.address,"Us");
 
+	Record Dataaaaaaaaaa;
+	Dataaaaaaaaaa.id=10;
+	strcpy(Dataaaaaaaaaa.name," Ow");
+	strcpy(Dataaaaaaaaaa.surname,"Co");
+	strcpy(Dataaaaaaaaaa.address,"Cal");
+
 
 	char *k;
 	HP_info* info;
-	char p= 'l';
+	char p= 'i';
 	k=new char[15];
 	strcpy(k,"ok");
-	HP_CreateFile(k,p,k,23);
+	HP_CreateFile(k,p,k,300);
 
 	info=HP_OpenFile(k);
 
+/*
+for (int i = 1; i < 100; i++)
+{
+
+		block_node *node= new block_node;
+
+	void * block2;
+	if (BF_AllocateBlock(info->fileDesc) < 0)
+			return -1;
+
+		if (BF_ReadBlock(info->fileDesc, i, &block2) < 0) {
+			BF_PrintError("Error getting block");
+			return -1;
+		}
+		node->cap=0;
+		memcpy(block2,node,sizeof(block_node));
+
+
+	if (BF_WriteBlock(info->fileDesc,i) < 0) return -1;
+	delete node;
+
+}
+*/
+
 	int succ;
+	for(int ii= 1 ; ii<=150 ;  ii++){
 	succ=HP_InsertEntry(*info,Data);
 	succ=HP_InsertEntry(*info,Dataa);
 	succ=HP_InsertEntry(*info,Dataaa);
@@ -89,45 +120,22 @@ int main(void)
 	succ=HP_InsertEntry(*info,Dataaaaaaa);
 	succ=HP_InsertEntry(*info,Dataaaaaaaa);
 	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
+	succ=HP_InsertEntry(*info,Dataaaaaaaaaa);
 
-	succ=HP_InsertEntry(*info,Data);
-	succ=HP_InsertEntry(*info,Dataa);
-	succ=HP_InsertEntry(*info,Dataaa);
-	succ=HP_InsertEntry(*info,Dataaaa);
-	succ=HP_InsertEntry(*info,Dataaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
-
-	succ=HP_InsertEntry(*info,Data);
-	succ=HP_InsertEntry(*info,Dataa);
-	succ=HP_InsertEntry(*info,Dataaa);
-	succ=HP_InsertEntry(*info,Dataaaa);
-	succ=HP_InsertEntry(*info,Dataaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
-
-	succ=HP_InsertEntry(*info,Data);
-	succ=HP_InsertEntry(*info,Dataa);
-	succ=HP_InsertEntry(*info,Dataaa);
-	succ=HP_InsertEntry(*info,Dataaaa);
-	succ=HP_InsertEntry(*info,Dataaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
+}
 
 
 
 
 
+	
 	Print_All_Records(*info);
 
 
 	HP_CloseFile(info);
+
+
+
 	delete[] k;
 
 	return 0;
@@ -247,7 +255,7 @@ int HP_InsertEntry( HP_info header_info , Record record )
 
 	int num_of_blocks = BF_GetBlockCounter(file_code);
 
-	
+	cout << "----->>>" <<num_of_blocks<<endl;
 	for(int Block=1 ; Block < num_of_blocks ; Block++ )
 	{
 		if (BF_ReadBlock(file_code, Block, &block) < 0) {
@@ -265,25 +273,26 @@ int HP_InsertEntry( HP_info header_info , Record record )
 			this_block->arr[num_of_recs] = record;
 			this_block->cap+=1;
 			memcpy(block,this_block,sizeof(block_node));
-			if (BF_WriteBlock(file_code,0) < 0) return -1;
+			if (BF_WriteBlock(file_code,Block) < 0) return -1;
 			delete this_block;
 			return Block;
 		}
 		if(Block == (num_of_blocks - 1))
 		{
-			if (BF_AllocateBlock(file_code) < 0)
+			if (BF_AllocateBlock(file_code) < 0){
+				cout << "ERRRRROOOORRR"<<endl;
 				return -1;
+			}
 
 			if (BF_ReadBlock(file_code, Block+1, &block) < 0) {
 				BF_PrintError("Error getting block");
 				return -1;
 			}
-			memcpy(this_block,block,sizeof(block_node));
 			this_block->arr[0] = record;
 			this_block->cap = 1;
 			memcpy(block,this_block,sizeof(block_node));
 
-			if (BF_WriteBlock(file_code,0) < 0) return -1;
+			if (BF_WriteBlock(file_code,Block+1) < 0) return -1;
 			delete this_block;
 			return Block+1;
 		}
@@ -291,10 +300,9 @@ int HP_InsertEntry( HP_info header_info , Record record )
 			continue;
 	}
 	delete this_block;
+	cout << "=============================================================="<< endl;
 	return -1;
 }
-
-
 
 int Print_All_Records( HP_info header_info)
 {
