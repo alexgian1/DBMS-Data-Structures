@@ -84,33 +84,13 @@ int main(void)
 	HP_CreateFile(k,p,k,300);
 
 	info=HP_OpenFile(k);
+	void *del;
+	
+	
 
-/*
-for (int i = 1; i < 100; i++)
-{
-
-		block_node *node= new block_node;
-
-	void * block2;
-	if (BF_AllocateBlock(info->fileDesc) < 0)
-			return -1;
-
-		if (BF_ReadBlock(info->fileDesc, i, &block2) < 0) {
-			BF_PrintError("Error getting block");
-			return -1;
-		}
-		node->cap=0;
-		memcpy(block2,node,sizeof(block_node));
-
-
-	if (BF_WriteBlock(info->fileDesc,i) < 0) return -1;
-	delete node;
-
-}
-*/
 
 	int succ;
-	for(int ii= 1 ; ii<=150 ;  ii++){
+	//for(int ii= 1 ; ii<=10 ;  ii++){
 	succ=HP_InsertEntry(*info,Data);
 	succ=HP_InsertEntry(*info,Dataa);
 	succ=HP_InsertEntry(*info,Dataaa);
@@ -120,15 +100,25 @@ for (int i = 1; i < 100; i++)
 	succ=HP_InsertEntry(*info,Dataaaaaaa);
 	succ=HP_InsertEntry(*info,Dataaaaaaaa);
 	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaaaa);
+	//succ=HP_InsertEntry(*info,Dataaaaaaaaaa);
 
-}
+//}
 
 
 
 
 
 	
+	Print_All_Records(*info);
+
+
+	HP_DeleteEntry(*info,8);
+	cout<<"-------"<<endl<<endl;
+
+	Print_All_Records(*info);
+
+	succ=HP_InsertEntry(*info,Dataaaaaaaa);
+	cout<<"------------"<<endl<<endl;
 	Print_All_Records(*info);
 
 
@@ -227,7 +217,7 @@ HP_info* HP_OpenFile(char *fileName)
 
 	memcpy(info_block,block,sizeof(HP_info));
 
-	cout << info_block->HP_filename<<" name: " <<info_block->fileDesc<< " surname: "<< info_block->attrType << " address: "<< info_block->attrName <<"<-------"<<endl;
+	//cout << info_block->HP_filename<<" name: " <<info_block->fileDesc<< " surname: "<< info_block->attrType << " address: "<< info_block->attrName <<"<-------"<<endl;
 	return info_block;
 }
 
@@ -267,9 +257,25 @@ int HP_InsertEntry( HP_info header_info , Record record )
 
 		int num_of_recs=this_block->cap;
 
+		if(this_block->del == 1)
+		{
+				for(int p=0; p < num_of_recs; p++)
+				{
+					if(this_block->arr[p].id == -1)
+					{
+						num_of_recs=p;
+						this_block->arr[num_of_recs] = record;
+						memcpy(block,this_block,sizeof(block_node));
+						if (BF_WriteBlock(file_code,Block) < 0) return -1;
+						delete this_block;
+						return Block;
+					}
+				}
+		}
+
 		if(num_of_recs < 5)
 		{
-
+			
 			this_block->arr[num_of_recs] = record;
 			this_block->cap+=1;
 			memcpy(block,this_block,sizeof(block_node));
@@ -290,6 +296,7 @@ int HP_InsertEntry( HP_info header_info , Record record )
 			}
 			this_block->arr[0] = record;
 			this_block->cap = 1;
+			this_block->del=0;
 			memcpy(block,this_block,sizeof(block_node));
 
 			if (BF_WriteBlock(file_code,Block+1) < 0) return -1;
@@ -335,3 +342,42 @@ int Print_All_Records( HP_info header_info)
 }
 
 
+
+int HP_DeleteEntry(HP_info header_info,int this_id) 
+{
+	//int *this_idd=static_cast<int*>(value);
+	//int this_id = *this_idd;
+
+
+	int file_code=header_info.fileDesc;
+	int num_of_blocks = BF_GetBlockCounter(file_code);
+	void* block;
+	block_node *node = new block_node;
+
+	for(int Block=1 ; Block < num_of_blocks ; Block++ )
+		{
+
+			if (BF_ReadBlock(file_code, Block, &block) < 0) {
+				BF_PrintError("Error getting block");
+				return -1;
+			}
+			memcpy(node,block,sizeof(block_node));
+
+			for (int rec=0;rec < node->cap; rec++)
+			{
+				if(node->arr[rec].id == this_id)
+				{
+					node->arr[rec].id = -1;
+					node->del=1;
+					memcpy(block,node,sizeof(block_node));
+
+					if (BF_WriteBlock(file_code,Block+1) < 0) return -1;
+					break;
+				}
+
+			}
+
+		}
+		delete node;
+		return 0;
+}

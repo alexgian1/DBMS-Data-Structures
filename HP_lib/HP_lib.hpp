@@ -21,6 +21,7 @@ typedef struct{
 
 typedef struct 
 {
+	bool del; //if there is an deleted Rec
 	int cap;
 	Record arr[5]; 
 	
@@ -36,3 +37,5 @@ int HP_CloseFile(HP_info* header_info);
 int HP_InsertEntry( HP_info header_info,Record record );
 
 int Print_All_Records( HP_info header_info);
+
+int HP_DeleteEntry(HP_info header_info,int y);
