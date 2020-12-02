@@ -110,7 +110,6 @@ int HT_InsertEntry(HT_info header_info, Record record){
     cout << "Number of blocks: " << BF_GetBlockCounter(header_info.fileDesc) << endl;
     
     //Search for the entry 
-    bool found = 0;
     int hashKey = hashFunction(record.id, header_info.numBuckets);
     string blockNumberStr;
     ifstream HTIndexFile(header_info.indexFilename);   //Open index file of the hashtable and search for line number "hashKey"
@@ -121,8 +120,6 @@ int HT_InsertEntry(HT_info header_info, Record record){
     int blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
 
     if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
-        void* block;
-        BF_ReadBlock(header_info.fileDesc, 0, &block);
         blockNumber = getNextBlock(header_info.fileDesc, 0);
         cout << "Skipping header block 0" << endl;
     }
@@ -188,8 +185,90 @@ int HT_InsertEntry(HT_info header_info, Record record){
             cout << "   Block full! Next block is: " << blockNumber << endl;
         }
         blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
-        
     }
+    return -1;
+}
 
+
+int HT_DeleteEntry(HT_info header_info, void* value){
+    int id = *(static_cast<int*>(value));  //if primary key is integer
+    //Search for the entry 
+    int hashKey = hashFunction(id, header_info.numBuckets);
+    string blockNumberStr;
+    ifstream HTIndexFile(header_info.indexFilename);   //Open index file of the hashtable and search for line number "hashKey"
+    for (int line=0; line<=hashKey; line++){
+        getline(HTIndexFile, blockNumberStr);   //line number n contains the location of the n-th block
+    }
+    
+    int blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
+
+    if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
+        blockNumber = getNextBlock(header_info.fileDesc, 0);
+        cout << "Skipping header block 0" << endl;
+    }
+    
+
+    void* recordPtr;
+    while (blockNumber != -1){   //While there is a block left to search
+        BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr);
+        for(int i=1; i<=RECORDS_PER_BLOCK; i++){
+            Record curRecord;
+            memcpy(&curRecord,recordPtr,sizeof(Record)); //copy the current record from block to curRecord variable
+            if (curRecord.id == id) {   //if the retrieved record is the required, delete it from the block 
+                cout << "Deleting : {" << curRecord.id << "," << curRecord.name << "," 
+                << curRecord.surname << "," << curRecord.address << "}"  << endl;
+                memset(recordPtr,0,sizeof(Record));   //set all bytes at the current record location to be 0
+                cout << "Success." << endl;
+                return 0;
+            }
+            recordPtr = static_cast<Record*>(recordPtr) + 1;
+        }
+        blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
+    }
+    cout << "Record with id " << id << " not found!" << endl;
+    return -1;
+}
+
+
+
+int HT_GetAllEntries(HT_info header_info, void* value){
+    int id = *(static_cast<int*>(value));  //primary key is integer
+    int blocksExpanded = 1;
+    
+    //Search for the entry 
+    int hashKey = hashFunction(id, header_info.numBuckets);
+    string blockNumberStr;
+    ifstream HTIndexFile(header_info.indexFilename);   //Open index file of the hashtable and search for line number "hashKey"
+    for (int line=0; line<=hashKey; line++){
+        getline(HTIndexFile, blockNumberStr);   //line number n contains the location of the n-th block
+    }
+    
+    int blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
+
+    if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
+        blockNumber = getNextBlock(header_info.fileDesc, 0);
+        cout << "Skipping header block 0" << endl;
+        blocksExpanded++;
+    }
+    
+
+    void* recordPtr;
+    while (blockNumber != -1){   //While there is a block left to search
+        BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr);
+        for(int i=1; i<=RECORDS_PER_BLOCK; i++){
+            Record curRecord;
+            memcpy(&curRecord,recordPtr,sizeof(Record)); //copy the current record from block to curRecord variable
+            if (curRecord.id == id) {  //if the retrieved record is the required, search is completed
+                cout << "Record with id " << id << " found!" << endl;
+                cout << "{" << curRecord.id << "," << curRecord.name << "," << curRecord.surname << "," << curRecord.address << "}"  << endl;
+                cout << "Expanded " << blocksExpanded << " blocks." << endl;
+                return blocksExpanded;
+            }
+            recordPtr = static_cast<Record*>(recordPtr) + 1;
+        }
+        blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
+        blocksExpanded++;
+    }
+    cout << "Record with id " << id << " not found!" << endl;
     return -1;
 }

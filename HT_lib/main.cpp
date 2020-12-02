@@ -59,12 +59,20 @@ int main(){
     */
 
    
-   for (int i=1; i<=1000; i+=1){
+   for (int i=1; i<=160; i+=1){
         cout << "------------------------------------" << i <<"-----------------------------------------------------" << endl;
        Record recordi = {i,"Name1","Surname1","Address1"};
        HT_InsertEntry(*HT1_info, recordi);
       
    }
+
+    Record record145 = {145,"Name1","Surname1","Address1"};
+    int value = 145;
+    HT_InsertEntry(*HT1_info, record145);
+    HT_GetAllEntries(*HT1_info, &value);
+    HT_DeleteEntry(*HT1_info, &value);
+    HT_GetAllEntries(*HT1_info, &value);
+    HT_InsertEntry(*HT1_info, record145);
    
 
     //allocateNBlocks(HT1_info->fileDesc,100);
