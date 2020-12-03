@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstring>
 #include <fstream>
+#include <string>
 #include "HP_lib.hpp"
 extern "C"{  //link with C library
     #include "../BF_lib/BF.h"  
@@ -12,70 +13,6 @@ using namespace std;
 
 int main(void)
 {
-
-	Record Data;
-	Data.id=1;
-	strcpy(Data.name," George");
-	strcpy(Data.surname,"Papa");
-	strcpy(Data.address,"Patra");
-
-
-	Record Dataa;
-	Dataa.id=2;
-	strcpy(Dataa.name," John");
-	strcpy(Dataa.surname,"Xac");
-	strcpy(Dataa.address,"Ath");
-
-
-	Record Dataaa;
-	Dataaa.id=3;
-	strcpy(Dataaa.name," Lissa");
-	strcpy(Dataaa.surname,"Jas");
-	strcpy(Dataaa.address,"Cal");
-
-	Record Dataaaa;
-	Dataaaa.id=4;
-	strcpy(Dataaaa.name," Jull");
-	strcpy(Dataaaa.surname,"Bl");
-	strcpy(Dataaaa.address,"Sw");
-//----
-	Record Dataaaaa;
-	Dataaaaa.id=5;
-	strcpy(Dataaaaa.name," Maria");
-	strcpy(Dataaaaa.surname,"Kal");
-	strcpy(Dataaaaa.address,"ios");
-
-	Record Dataaaaaa;
-	Dataaaaaa.id=6;
-	strcpy(Dataaaaaa.name," danai");
-	strcpy(Dataaaaaa.surname,"pal");
-	strcpy(Dataaaaaa.address,"Paros");
-
-	Record Dataaaaaaa;
-	Dataaaaaaa.id=7;
-	strcpy(Dataaaaaaa.name," Nicolle");
-	strcpy(Dataaaaaaa.surname,"Ded");
-	strcpy(Dataaaaaaa.address,"Thisio");
-
-	Record Dataaaaaaaa;
-	Dataaaaaaaa.id=8;
-	strcpy(Dataaaaaaaa.name," Lef");
-	strcpy(Dataaaaaaaa.surname,"Vam");
-	strcpy(Dataaaaaaaa.address,"Pli");
-
-	Record Dataaaaaaaaa;
-	Dataaaaaaaaa.id=9;
-	strcpy(Dataaaaaaaaa.name," Max");
-	strcpy(Dataaaaaaaaa.surname,"Tow");
-	strcpy(Dataaaaaaaaa.address,"Us");
-
-	Record Dataaaaaaaaaa;
-	Dataaaaaaaaaa.id=10;
-	strcpy(Dataaaaaaaaaa.name," Ow");
-	strcpy(Dataaaaaaaaaa.surname,"Co");
-	strcpy(Dataaaaaaaaaa.address,"Cal");
-
-
 	char *k;
 	HP_info* info;
 	char p= 'i';
@@ -85,45 +22,16 @@ int main(void)
 
 	info=HP_OpenFile(k);
 	void *del;
-	
-	
-
-
-	int succ;
-	//for(int ii= 1 ; ii<=10 ;  ii++){
-	succ=HP_InsertEntry(*info,Data);
-	succ=HP_InsertEntry(*info,Dataa);
-	succ=HP_InsertEntry(*info,Dataaa);
-	succ=HP_InsertEntry(*info,Dataaaa);
-	succ=HP_InsertEntry(*info,Dataaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaa);
-	succ=HP_InsertEntry(*info,Dataaaaaaaaa);
-	//succ=HP_InsertEntry(*info,Dataaaaaaaaaa);
-
-//}
 
 
 
 
-
-	
+	Read_From_File(*info);
 	Print_All_Records(*info);
-
-
-	HP_DeleteEntry(*info,8);
-	cout<<"-------"<<endl<<endl;
-
-	Print_All_Records(*info);
-
-	succ=HP_InsertEntry(*info,Dataaaaaaaa);
-	cout<<"------------"<<endl<<endl;
-	Print_All_Records(*info);
-
 
 	HP_CloseFile(info);
 
+	
 
 
 	delete[] k;
@@ -245,7 +153,6 @@ int HP_InsertEntry( HP_info header_info , Record record )
 
 	int num_of_blocks = BF_GetBlockCounter(file_code);
 
-	cout << "----->>>" <<num_of_blocks<<endl;
 	for(int Block=1 ; Block < num_of_blocks ; Block++ )
 	{
 		if (BF_ReadBlock(file_code, Block, &block) < 0) {
@@ -285,15 +192,10 @@ int HP_InsertEntry( HP_info header_info , Record record )
 		}
 		if(Block == (num_of_blocks - 1))
 		{
-			if (BF_AllocateBlock(file_code) < 0){
-				cout << "ERRRRROOOORRR"<<endl;
-				return -1;
-			}
+			if (BF_AllocateBlock(file_code) < 0) return -1;
 
-			if (BF_ReadBlock(file_code, Block+1, &block) < 0) {
-				BF_PrintError("Error getting block");
-				return -1;
-			}
+			if (BF_ReadBlock(file_code, Block+1, &block) < 0) return -1;
+
 			this_block->arr[0] = record;
 			this_block->cap = 1;
 			this_block->del=0;
@@ -307,7 +209,6 @@ int HP_InsertEntry( HP_info header_info , Record record )
 			continue;
 	}
 	delete this_block;
-	cout << "=============================================================="<< endl;
 	return -1;
 }
 
@@ -368,6 +269,9 @@ int HP_DeleteEntry(HP_info header_info,int this_id)
 				if(node->arr[rec].id == this_id)
 				{
 					node->arr[rec].id = -1;
+					strcpy(node->arr[rec].name,"DELETED");
+					strcpy(node->arr[rec].surname,"DELETED");
+					strcpy(node->arr[rec].address,"DELETED");
 					node->del=1;
 					memcpy(block,node,sizeof(block_node));
 
@@ -380,4 +284,62 @@ int HP_DeleteEntry(HP_info header_info,int this_id)
 		}
 		delete node;
 		return 0;
+}
+
+
+void Read_From_File(HP_info header_info)
+{
+
+
+	Record rec;
+
+
+	ifstream myReadFile;
+ 	myReadFile.open("../record_examples/records5K.txt");
+ 	string output;
+ 	if (myReadFile.is_open()) {
+
+ 		while (!myReadFile.eof()) {
+
+
+    		myReadFile >> output;
+    		//cout<<output<<endl;
+
+    		std::size_t pos = output.find(",");
+    		std::string id = output.substr (1,pos);
+    		//cout<<"id=" <<id<<endl;
+
+    		std::string remaining = output.substr (pos+2);
+    		std::size_t pos2 = remaining.find(",");
+    		pos2--;
+    		std::string name = output.substr (pos+2 ,pos2);
+    		//cout<<"name=" <<name<<endl;
+
+
+    		remaining = remaining.substr (pos2+3);
+    		std::size_t pos3 = remaining.find(",");
+    		pos3--;
+    		std::string surname = remaining.substr (0 ,pos3);
+    		//cout<<"surname=" <<surname<<endl;
+
+
+    		remaining = remaining.substr (pos3+3);
+    		std::size_t pos4 = remaining.find("}");
+    		pos3--;
+    		std::string address = remaining.substr (0 ,pos4-1);
+    		//cout<<"address= " <<address<<endl;
+
+    		int int_id= stoi(id);
+
+    		rec.id=int_id;
+    		strcpy(rec.name,name.c_str());
+    		strcpy(rec.surname,surname.c_str());
+    		strcpy(rec.address,address.c_str());
+
+
+    		HP_InsertEntry(header_info,rec);
+
+ 		}
+	}
+	myReadFile.close();
 }
