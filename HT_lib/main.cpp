@@ -66,6 +66,12 @@ int main(){
       
    }
 
+   for (int i=171; i<=400; i+=10){
+        cout << "------------------------------------" << i <<"-----------------------------------------------------" << endl;
+       Record recordi = {i,"Name1","Surname1","Address1"};
+       HT_InsertEntry(*HT1_info, recordi);
+   }
+
     Record record145 = {145,"Name1","Surname1","Address1"};
     int value = 145;
     HT_InsertEntry(*HT1_info, record145);
@@ -74,9 +80,7 @@ int main(){
     HT_GetAllEntries(*HT1_info, &value);
     HT_InsertEntry(*HT1_info, record145);
    
-
-    //allocateNBlocks(HT1_info->fileDesc,100);
-    
+    hashStatistics("HashTable1");    
 
 
     return 0;

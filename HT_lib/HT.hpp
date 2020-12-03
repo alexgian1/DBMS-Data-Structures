@@ -29,3 +29,4 @@ int HT_DeleteEntry(HT_info header_info, void* value);
 
 int HT_GetAllEntries(HT_info header_info, void* value);
 
+int hashStatistics(char* filename);

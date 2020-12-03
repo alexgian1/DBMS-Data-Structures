@@ -272,3 +272,61 @@ int HT_GetAllEntries(HT_info header_info, void* value){
     cout << "Record with id " << id << " not found!" << endl;
     return -1;
 }
+
+
+int hashStatistics(char* filename){
+    cout << "___________________________________________HASH STATISTICS___________________________________________" << endl;
+    HT_info info = *HT_OpenIndex(filename);
+    int totalBlocks = 0;
+    int bucketsWithOverflowBlocks = 0;
+    double averageOverflowBlocks = 0;
+    int minRecords = 999999;  
+    int maxRecords = 0;  
+    double avgRecords = 0;
+
+    ifstream HTIndexFile(info.indexFilename);   //Open index file of the hashtable
+    string blockNumberStr;
+    while(getline(HTIndexFile, blockNumberStr)){     //Get all lines from the index file
+        int overflowBlocks = 0;
+        int blockNumber = stoi(blockNumberStr);
+        int firstBlock = blockNumber;
+
+        int recordsInBucket = 0;
+        
+        if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
+            blockNumber = getNextBlock(info.fileDesc, 0);
+            totalBlocks++;
+        }
+
+        while (blockNumber != -1){   //While there is a block left to search
+            totalBlocks++;
+            if (blockNumber != firstBlock) overflowBlocks++;  //If this block is not the first of the bucket, it is an overflow block.
+
+            //Count the records in the current block
+            void* recordPtr;
+            BF_ReadBlock(info.fileDesc, blockNumber, &recordPtr);
+            for(int i=1; i<=RECORDS_PER_BLOCK; i++){
+                Record curRecord;
+                if (*static_cast<int*>(recordPtr) != 0){  //if a record is saved in this location
+                    recordsInBucket++;
+                }
+                recordPtr = static_cast<Record*>(recordPtr) + 1;
+            }
+            blockNumber = getNextBlock(info.fileDesc, blockNumber); //Go to the next block
+        }
+        cout << "Overflow blocks in bucket " << firstBlock << ": " << overflowBlocks << endl;
+        if (overflowBlocks>0) bucketsWithOverflowBlocks++;
+        averageOverflowBlocks += static_cast<double>(overflowBlocks) / info.numBuckets;   //average overflow blocks per bucket
+        if (recordsInBucket < minRecords) minRecords = recordsInBucket;
+        if (recordsInBucket > maxRecords) maxRecords = recordsInBucket;
+        avgRecords += static_cast<double>(recordsInBucket) / info.numBuckets;
+    }
+
+    cout << "Total buckets with overflow blocks: " << bucketsWithOverflowBlocks << endl;
+    cout << "Average overflow blocks per bucket: " << averageOverflowBlocks << endl;
+    cout << "Total blocks in file: " << totalBlocks << endl;
+    cout << "Minimum records per bucket: " << minRecords << endl;
+    cout << "Maximum records per bucket: " << maxRecords << endl;
+    cout << "Average records per bucket: " << avgRecords << endl;
+    return 0;
+}
