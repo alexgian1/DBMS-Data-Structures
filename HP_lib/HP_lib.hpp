@@ -42,3 +42,5 @@ int HP_DeleteEntry(HP_info header_info,int y);
 
 
 void Read_From_File(HP_info header_info);
+
+int HP_GetAllEntries( HP_info header_info,int x);

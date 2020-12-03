@@ -27,7 +27,8 @@ int main(void)
 
 
 	Read_From_File(*info);
-	Print_All_Records(*info);
+	//Print_All_Records(*info);
+	HP_GetAllEntries(*info,568);
 
 	HP_CloseFile(info);
 
@@ -295,7 +296,7 @@ void Read_From_File(HP_info header_info)
 
 
 	ifstream myReadFile;
- 	myReadFile.open("../record_examples/records5K.txt");
+ 	myReadFile.open("../record_examples/records1K.txt");
  	string output;
  	if (myReadFile.is_open()) {
 
@@ -342,4 +343,45 @@ void Read_From_File(HP_info header_info)
  		}
 	}
 	myReadFile.close();
+}
+
+
+
+
+
+int HP_GetAllEntries( HP_info header_info,int x)
+{
+
+int file_code=header_info.fileDesc;
+	int num_of_blocks = BF_GetBlockCounter(file_code);
+	void* block;
+	block_node *node = new block_node;
+
+	for(int Block=1 ; Block < num_of_blocks ; Block++ )
+		{
+
+			if (BF_ReadBlock(file_code, Block, &block) < 0) {
+				BF_PrintError("Error getting block");
+				return -1;
+			}
+			memcpy(node,block,sizeof(block_node));
+
+			for (int rec=0;rec < node->cap; rec++)
+			{
+				if(node->arr[rec].id == x)
+				{
+					cout << "entry found !! ";
+					cout << "with: name=" <<node->arr[rec].name << " ";
+					cout << node->arr[rec].surname << " And address : " ;
+					cout << node->arr[rec].address <<" and id:"<<node->arr[rec].id <<endl;
+					return 0;
+				}
+
+			}
+
+		}
+		cout << "No entry found :("<<endl;
+		delete node;
+		return 0;
+
 }
