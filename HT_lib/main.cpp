@@ -1,14 +1,14 @@
 #include <iostream>
 #include <fstream>
+#include <cstring>
 #include "HT.hpp"
 
 using namespace std;
 
 
-
 int main(){
 
-    if (HT_CreateIndex("HashTable1",'i',"Attribute",5,10) == 0){
+    if (HT_CreateIndex("HashTable1",'i',"Attribute",5,300) == 0){
         cout << "File created sucessfully!" << endl;
     }
 
@@ -22,66 +22,29 @@ int main(){
         cout << "HT1 numBuckets: " << HT1_info->numBuckets << endl;
         cout << "HT1 index: " << HT1_info->indexFilename << endl;
     }
-    
-    /*
-    if (HT_CloseIndex(HT1_info) == 0){
-        cout << "File closed sucessfully!" << endl;
-    }*/
-    
-    /*
-    
-    Record record1 = {150,"Name1","Surname1","Address1"};
-    Record record2 = {140,"Name2","Surname2","Address2"};
-    Record record3 = {130,"Name3","Surname3","Address3"};
-    Record record4 = {120,"Name3","Surname3","Address3"};
-    Record record5 = {110,"Name3","Surname3","Address3"};
-    Record record6 = {100,"Name3","Surname3","Address3"};
 
-    HT_InsertEntry(*HT1_info, record1);
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record2);
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record3);
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record4);
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record5);
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record6);
-    cout << "---------------------------------"<< endl;
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record1);
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record2);
-    cout << "---------------------------------"<< endl;
-    HT_InsertEntry(*HT1_info, record3);
-    
-    */
+    Read_From_File(*HT1_info,"records5K.txt");
 
-   
-   for (int i=1; i<=160; i+=1){
-        cout << "------------------------------------" << i <<"-----------------------------------------------------" << endl;
-       Record recordi = {i,"Name1","Surname1","Address1"};
-       HT_InsertEntry(*HT1_info, recordi);
-      
-   }
+    cout << "----------------------------- DELETE TEST -----------------------------" << endl;
 
-   for (int i=171; i<=400; i+=10){
-        cout << "------------------------------------" << i <<"-----------------------------------------------------" << endl;
-       Record recordi = {i,"Name1","Surname1","Address1"};
-       HT_InsertEntry(*HT1_info, recordi);
-   }
+    int valuesToDelete[4] = {150,12,2400,54445};
+    HT_DeleteEntry(*HT1_info, &valuesToDelete[0]);
+    HT_DeleteEntry(*HT1_info, &valuesToDelete[1]);
+    HT_DeleteEntry(*HT1_info, &valuesToDelete[2]);
+    HT_DeleteEntry(*HT1_info, &valuesToDelete[2]);  //Delete already delete entry
+    HT_DeleteEntry(*HT1_info, &valuesToDelete[3]);  //Delete non-existent entry
 
-    Record record145 = {145,"Name1","Surname1","Address1"};
-    int value = 145;
-    HT_InsertEntry(*HT1_info, record145);
-    HT_GetAllEntries(*HT1_info, &value);
-    HT_DeleteEntry(*HT1_info, &value);
-    HT_GetAllEntries(*HT1_info, &value);
-    HT_InsertEntry(*HT1_info, record145);
-   
-    hashStatistics("HashTable1");    
+    cout << "----------------------------- SEARCH TEST -----------------------------" << endl;
 
+    int valuesToSearch[3] = {500,150,99999};
+    HT_GetAllEntries(*HT1_info, &valuesToSearch[0]);
+    HT_GetAllEntries(*HT1_info, &valuesToSearch[1]);  //Search deleted entry
+    HT_GetAllEntries(*HT1_info, &valuesToSearch[2]);  //Search non-exitent entry
+
+    hashStatistics("HashTable1");
+
+    HT_CloseIndex(HT1_info);
 
     return 0;
 }
+

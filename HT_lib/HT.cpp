@@ -9,31 +9,6 @@ extern "C"{  //link with C library
 #define RECORDS_PER_BLOCK 5
 
 using namespace std;
-//------------------------------------Utility Functions------------------------------------------------------//
-int hashFunction(int id, int buckets){
-    return id%buckets;
-}
-
-int getNextBlock(int blockFile, int currentBlock){
-    //Returns the index of the next block. If there is no block after the current, returns -1.
-    int nextBlockIndex;
-    void* currentBlockPtr;
-    
-    BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
-    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
-    if (lastBlockBytes == NULL) return -1;
-    memcpy(&nextBlockIndex, lastBlockBytes, sizeof(int));  //copy the index of the next block to the
-    return nextBlockIndex;
-}
-
-void setNextBlock(int blockFile, int currentBlock, int nextBlock){
-    //Sets the index of the next block.
-    void* currentBlockPtr;
-    BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
-    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
-    memcpy(lastBlockBytes, &nextBlock, sizeof(int));  //copy the index of the next block to the end of the block
-    BF_WriteBlock(blockFile,currentBlock);
-}
 
 //-----------------------------------------------------------------------------------------------------------//
 
@@ -329,4 +304,76 @@ int hashStatistics(char* filename){
     cout << "Maximum records per bucket: " << maxRecords << endl;
     cout << "Average records per bucket: " << avgRecords << endl;
     return 0;
+}
+
+//------------------------------------Utility Functions------------------------------------------------------//
+int hashFunction(int id, int buckets){
+    return id%buckets;
+}
+
+int getNextBlock(int blockFile, int currentBlock){
+    //Returns the index of the next block. If there is no block after the current, returns -1.
+    int nextBlockIndex;
+    void* currentBlockPtr;
+    
+    BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
+    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
+    if (lastBlockBytes == NULL) return -1;
+    memcpy(&nextBlockIndex, lastBlockBytes, sizeof(int));  //copy the index of the next block to the
+    return nextBlockIndex;
+}
+
+void setNextBlock(int blockFile, int currentBlock, int nextBlock){
+    //Sets the index of the next block.
+    void* currentBlockPtr;
+    BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
+    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
+    memcpy(lastBlockBytes, &nextBlock, sizeof(int));  //copy the index of the next block to the end of the block
+    BF_WriteBlock(blockFile,currentBlock);
+}
+
+void Read_From_File(HT_info header_info, string recordsFile){
+
+	Record rec;
+	ifstream myReadFile;
+    string recordsFolder = "../record_examples/";
+    myReadFile.open(recordsFolder + recordsFile);
+ 	string output;
+ 	if (myReadFile.is_open()) {
+
+ 		while (!myReadFile.eof()) {
+    		myReadFile >> output;
+
+    		std::size_t pos = output.find(",");
+    		std::string id = output.substr (1,pos);
+
+    		std::string remaining = output.substr (pos+2);
+    		std::size_t pos2 = remaining.find(",");
+    		pos2--;
+    		std::string name = output.substr (pos+2 ,pos2);
+
+
+    		remaining = remaining.substr (pos2+3);
+    		std::size_t pos3 = remaining.find(",");
+    		pos3--;
+    		std::string surname = remaining.substr (0 ,pos3);
+
+
+    		remaining = remaining.substr (pos3+3);
+    		std::size_t pos4 = remaining.find("}");
+    		pos3--;
+    		std::string address = remaining.substr (0 ,pos4-1);
+
+    		int int_id= stoi(id);
+
+    		rec.id=int_id;
+    		strcpy(rec.name,name.c_str());
+    		strcpy(rec.surname,surname.c_str());
+    		strcpy(rec.address,address.c_str());
+
+
+    		HT_InsertEntry(header_info,rec);
+ 		}
+	}
+	myReadFile.close();
 }
