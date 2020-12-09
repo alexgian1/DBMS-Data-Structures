@@ -38,9 +38,9 @@ int HP_InsertEntry( HP_info header_info,Record record );
 
 int Print_All_Records( HP_info header_info);
 
-int HP_DeleteEntry(HP_info header_info,int y);
+int HP_DeleteEntry(HP_info header_info,void* value);
 
 
-void Read_From_File(HP_info header_info);
+void Read_From_File(HP_info header_info, std :: string recordsFile);
 
-int HP_GetAllEntries( HP_info header_info,int x);
+int HP_GetAllEntries( HP_info header_info,void* value);
