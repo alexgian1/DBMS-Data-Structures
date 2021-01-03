@@ -29,7 +29,7 @@
 
 
 /* H metavlhth opou kataxwreitai o kwdikos tou teleftaiou sfalmatos */
-int BF_Errno;
+extern int BF_Errno;
 
 /* Kathorizei to mege8os enos block apo to arxeio  */
 #define BLOCK_SIZE 512

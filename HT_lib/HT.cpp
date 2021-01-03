@@ -6,6 +6,7 @@ extern "C"{  //link with C library
     #include "../BF_lib/BF.h"  
 }
 
+
 #define RECORDS_PER_BLOCK 5
 
 using namespace std;
@@ -55,6 +56,7 @@ int HT_CreateIndex(char* filename, char attrType, char* attrName, int attrLength
 HT_info* HT_OpenIndex(char* filename){
     int blockFile;
     if ( (blockFile = BF_OpenFile(filename)) < 0) return NULL;  //open the file containing the blocks
+    
     void* HTinfoBlock;
     if (BF_ReadBlock(blockFile,0,&HTinfoBlock) < 0) return NULL;  //store HT_info block location to HTinfoBlock pointer (HT_info is block 0 of the file)
     
@@ -69,7 +71,7 @@ HT_info* HT_OpenIndex(char* filename){
 
 int HT_CloseIndex(HT_info* header_info){
     if (BF_CloseFile(header_info->fileDesc) < 0) return -1;
-    free(header_info);
+    //free(header_info);
     return 0;
 }
 
