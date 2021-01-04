@@ -1,5 +1,4 @@
 #include <string>
-#include "../HT_lib/HT.hpp"
 
 typedef struct{
     int fileDesc;
@@ -7,25 +6,20 @@ typedef struct{
     int attrLength;
     long int numBuckets;
     char* indexFilename;
-    int SHT_infoBlockNumber;
 }SHT_info;
 
-typedef struct{
-    char surname[25];
-    int blockId;
-}SecondaryRecord;
 
+int SHT_CreateIndex(char* sfilename, char attrType, char* attrName, int attrLength, int buckets, char* filename);
 
-int SHT_CreateSecondaryIndex(char* sfilename, char attrType, char* attrName, int attrLength, int buckets, char* filename);
+SHT_info* SHT_OpenIndex(char* sfilename);
 
-SHT_info* SHT_OpenSecondaryIndex(char* sfilename);
-
-int SHT_CloseSecondaryIndex(SHT_info* header_info);
-
-int SHT_SecondaryInsertEntry(SHT_info header_info, SecondaryRecord record);
-
+int SHT_CloseIndex(SHT_info* header_info);
 /*
-int SHT_GetAllEntries(SHT_info header_info, void* value);
+int HT_InsertEntry(HT_info header_info, Record record);
+
+int HT_DeleteEntry(HT_info header_info, void* value);
+
+int HT_GetAllEntries(HT_info header_info, void* value);
 
 int hashStatistics(char* filename);
 
@@ -35,4 +29,4 @@ int hashStatistics(char* filename);
 //int hashFunction(int id, int buckets);
 //int getNextBlock(int blockFile, int currentBlock);
 //void setNextBlock(int blockFile, int currentBlock, int nextBlock);
-void Read_From_File(SHT_info header_info, std::string recordsFile);  //Used in main()
+//void Read_From_File(HT_info header_info, std::string recordsFile);  //Used in main()
