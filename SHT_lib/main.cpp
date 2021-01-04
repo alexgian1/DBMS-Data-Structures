@@ -2,17 +2,17 @@
 #include <fstream>
 #include <cstring>
 #include "SHT.hpp"
-#include "../HT_lib/HT.hpp"
+
 
 using namespace std;
 
 
 int main(){
     HT_CreateIndex("DB1",'i',"id",10,15);
-    SHT_CreateIndex("secondaryIndex", 's', "surname", 30, 5, "DB1");
-    
+    SHT_CreateSecondaryIndex("secondaryIndex", 's', "surname", 30, 5, "DB1");
+
     HT_info pIndexPtr = *HT_OpenIndex("DB1");
-    SHT_info sIndexPtr = *SHT_OpenIndex("secondaryIndex");
+    SHT_info sIndexPtr = *SHT_OpenSecondaryIndex("secondaryIndex");
     cout << "_______PRIMARY INDEX_______" << endl;
     cout << "fileDesc = " << pIndexPtr.fileDesc << endl;
     cout << "attrName = " << pIndexPtr.attrName << endl;
@@ -27,7 +27,13 @@ int main(){
     cout << "numBuckets = " << sIndexPtr.numBuckets << endl;
     cout << "indexFilename = " << sIndexPtr.indexFilename << endl;
 
-    SHT_CloseIndex(&sIndexPtr);
+    cout << "_______INSERTING_______" << endl;
+    Read_From_File(sIndexPtr,"records1K.txt");
+
+    char* test = "surname_10";
+    SHT_SecondaryGetAllEntries(sIndexPtr, pIndexPtr, test);
+
+    SHT_CloseSecondaryIndex(&sIndexPtr);
     return 0;
 }
 

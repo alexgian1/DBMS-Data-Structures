@@ -2,18 +2,20 @@
 #include <cstring>
 #include <fstream>
 #include "SHT.hpp"
-#include "../HT_lib/HT.hpp"
+
 extern "C"{  //link with C library
     #include "../BF_lib/BF.h"  
 }
 
+
 #define RECORDS_PER_BLOCK 5
+#define SECONDARY_RECORDS_PER_BLOCK 14
 
 using namespace std;
 
 //-----------------------------------------------------------------------------------------------------------//
 
-int SHT_CreateIndex(char* sfilename, char attrType, char* attrName, int attrLength, int buckets, char* filename){
+int SHT_CreateSecondaryIndex(char* sfilename, char attrType, char* attrName, int attrLength, int buckets, char* filename){
     //Create the secondary index file:
     //each line contains the block number where the key-pointer are saved
     
@@ -31,7 +33,7 @@ int SHT_CreateIndex(char* sfilename, char attrType, char* attrName, int attrLeng
     
     int firstAllocatedBlockNum = BF_GetBlockCounter(blockFile)-buckets; //the first block allocated for the first bucket
     //add HT_info at the first block    
-    SHT_info info = {blockFile, attrName, attrLength, buckets, sfilename}; 
+    SHT_info info = {blockFile, attrName, attrLength, buckets, filename, sfilename, firstAllocatedBlockNum}; 
     void* SHTinfoBlock;
     //cout << "SHT_info saved at block " << BF_GetBlockCounter(blockFile)-buckets << endl;
     if (BF_ReadBlock(blockFile,firstAllocatedBlockNum,&SHTinfoBlock) < 0) return -1;  //store SHT_info block location to HTinfoBlock pointer
@@ -51,7 +53,7 @@ int SHT_CreateIndex(char* sfilename, char attrType, char* attrName, int attrLeng
 }
 
 
-SHT_info* SHT_OpenIndex(char* sfilename){
+SHT_info* SHT_OpenSecondaryIndex(char* sfilename){
     //Get the block file name
     ifstream SHTIndex(sfilename);    
     string filenameStr;
@@ -77,35 +79,37 @@ SHT_info* SHT_OpenIndex(char* sfilename){
 }
 
 
-int SHT_CloseIndex(SHT_info* header_info){
+int SHT_CloseSecondaryIndex(SHT_info* header_info){
     if (BF_CloseFile(header_info->fileDesc) < 0) return -1;
     //free(header_info);
     return 0;
 }
 
-/*
-int HT_InsertEntry(HT_info header_info, Record record){
+
+int SHT_SecondaryInsertEntry(SHT_info header_info, Record record){
     //cout << "Number of blocks: " << BF_GetBlockCounter(header_info.fileDesc) << endl;
+    int blockInserted = -1; //If insertion is successful, blockInserted will contain the block where the record was inserted
     
-    //Search for the entry 
-    int hashKey = hashFunction(record.id, header_info.numBuckets);
+    HT_info HT_header_info = *HT_OpenIndex(header_info.indexFilename); //Get HT_INFO
+    //Search for the entry in primary index
+    int hashKey = hashFunction(record.id, HT_header_info.numBuckets);
     string blockNumberStr;
-    ifstream HTIndexFile(header_info.indexFilename);   //Open index file of the hashtable and search for line number "hashKey"
+    ifstream HTIndexFile(HT_header_info.indexFilename);   //Open index file of the hashtable and search for line number "hashKey"
     for (int line=0; line<=hashKey; line++){
         getline(HTIndexFile, blockNumberStr);   //line number n contains the location of the n-th block
     }
     
     int blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
-
+    
     if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
-        blockNumber = getNextBlock(header_info.fileDesc, 0);
+        blockNumber = getNextBlock(HT_header_info.fileDesc, 0);
         //cout << "Skipping header block 0" << endl;
     }
     
 
     void* recordPtr;
     while (blockNumber != -1){   //While there is a block left to search
-        if (BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr) == -1) return -1;
+        if (BF_ReadBlock(HT_header_info.fileDesc, blockNumber, &recordPtr) == -1) return -1;
         //cout << "Checking block " << blockNumber << endl;
         for(int i=1; i<=RECORDS_PER_BLOCK; i++){
             if (*static_cast<int*>(recordPtr) == 0){  //if no record is saved in this location, go sizeof(Record) bytes forward in the block file
@@ -116,40 +120,127 @@ int HT_InsertEntry(HT_info header_info, Record record){
                 memcpy(&curRecord,recordPtr,sizeof(Record)); //copy the current record from block to curRecord variable
                 if (curRecord.id == record.id) {
                     //cout << "   Record with id " << curRecord.id << " already exists! Insertion failed." << endl;
+                    HT_CloseIndex(&HT_header_info);
                     return -1;
                 }
                 //cout << "   Record location "<< i <<" full." << endl;
             }
             recordPtr = static_cast<Record*>(recordPtr) + 1;
         }
-        blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
+        blockNumber = getNextBlock(HT_header_info.fileDesc, blockNumber); //Go to the next block
         //cout << "   Next block is: " << blockNumber << endl;
     }
     //cout << "Record not found! Inserting..." << endl;
 
-    //Insert the entry 
+    //Insert the entry in primary index
     //Find the 1st empty record location
 
     blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
     if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
         void* block;
-        if (BF_ReadBlock(header_info.fileDesc, 0, &block) == -1) return -1;
-        blockNumber = getNextBlock(header_info.fileDesc, 0);
+        if (BF_ReadBlock(HT_header_info.fileDesc, 0, &block) == -1) return -1;
+        blockNumber = getNextBlock(HT_header_info.fileDesc, 0);
     }
-    if (BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr) == -1) return -1;
+    if (BF_ReadBlock(HT_header_info.fileDesc, blockNumber, &recordPtr) == -1) return -1;
 
-    while (blockNumber != -1){   //While there is a block left to search
-        if (BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr) == -1) return -1;
+    while (blockNumber != -1 && blockInserted == -1){   //While there is a block left to search and record is not inserted
+        if (BF_ReadBlock(HT_header_info.fileDesc, blockNumber, &recordPtr) == -1) return -1;
         //cout << "Checking block " << blockNumber << endl;
         for(int i=1; i<=RECORDS_PER_BLOCK; i++){
             //cout << "   Checking record location " << i << endl;
             if (*static_cast<int*>(recordPtr) == 0){  //if no record is saved in this location
                 memcpy(recordPtr, &record, sizeof(Record));   //save the record
-                BF_WriteBlock(header_info.fileDesc,blockNumber);
+                BF_WriteBlock(HT_header_info.fileDesc,blockNumber);
                 //cout << "Record inserted successfully!" << endl;
-                return 0;
+                HT_CloseIndex(&HT_header_info);
+                blockInserted = blockNumber;
+                break;
             }
             recordPtr = static_cast<Record*>(recordPtr) + 1;  //go to the next record location
+        }
+        
+        if (getNextBlock(HT_header_info.fileDesc, blockNumber) == -1){  //if this block is the final and it is full generate a new
+            //cout << "   Block full! Generating new...: " << blockNumber << endl;
+            if (BF_AllocateBlock(HT_header_info.fileDesc) == -1) return -1;
+            int lastAllocatedBlock = BF_GetBlockCounter(HT_header_info.fileDesc) - 1;
+            setNextBlock(HT_header_info.fileDesc, blockNumber, lastAllocatedBlock);
+            setNextBlock(HT_header_info.fileDesc, lastAllocatedBlock, -1);  //set the next of the new block to be NULL
+        }
+        //else{        //Block full, but there is another block after that
+            //cout << "   Block full! Next block is: " << blockNumber << endl;
+        //}
+        blockNumber = getNextBlock(HT_header_info.fileDesc, blockNumber); //Go to the next block
+    }
+    
+    HT_CloseIndex(&HT_header_info);
+    if (blockInserted == -1) return -1; //Insertion failed
+
+    //Insertion successfull, insert at secondary index
+    SecondaryRecord secRecord;  //Create the secondary record
+    strcpy(secRecord.surname,record.surname);
+    secRecord.blockId = blockInserted;
+
+    hashKey = ((int) secRecord.surname[8]) % header_info.numBuckets;  //Temporary, make a better hash function
+    
+    ifstream SHTIndexFile(header_info.sIndexFilename);   //Open secondary index file of the hashtable and search for line number "hashKey"
+    getline(SHTIndexFile, blockNumberStr);  //Skip the first line
+    for (int line=0; line<=hashKey; line++){
+        getline(SHTIndexFile, blockNumberStr);   //line number n contains the location of the n-th block
+    }
+    //cout << blockNumberStr << endl;
+    blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
+
+    if (blockNumber == header_info.SHT_infoBlockNumber){  //if the current block is the SHT_info block, go to the next block
+        blockNumber = getNextBlock(header_info.fileDesc, header_info.SHT_infoBlockNumber);
+        //cout << "Skipping header block " << header_info.SHT_infoBlockNumber << endl;
+    }
+
+    void* secRecordPtr;
+    while (blockNumber != -1){   //While there is a block left to search
+        if (BF_ReadBlock(header_info.fileDesc, blockNumber, &secRecordPtr) == -1) return -1;
+        //cout << "Checking block " << blockNumber << endl;
+        for(int i=1; i<=SECONDARY_RECORDS_PER_BLOCK; i++){
+            if (*static_cast<int*>(recordPtr) == 0){  //if no record is saved in this location, go sizeof(Record) bytes forward in the block file
+                //cout << "   No record in record location " << i << endl;
+            }
+            else{  //if there is a record saved in this location, check if it is the same as the one we are inserting
+                SecondaryRecord curSecRecord;
+                memcpy(&curSecRecord,secRecordPtr,sizeof(SecondaryRecord)); //copy the current record from block to curRecord variable
+                if (curSecRecord.surname == record.surname && curSecRecord.blockId == blockInserted) {
+                    //cout << "   Record with surname " << curSecRecord.surname << " already exists in block" << blockInserted << "! Insertion skipped." << endl;
+                    HT_CloseIndex(&HT_header_info);
+                    return -1;
+                }
+                //cout << "   Record location "<< i <<" full." << endl;
+            }
+            recordPtr = static_cast<SecondaryRecord*>(secRecordPtr) + 1;
+        }
+        blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
+        //cout << "   Next block is: " << blockNumber << endl;
+    }
+    //cout << "Secondary record not found! Inserting..." << endl;
+
+    blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
+    if (blockNumber == header_info.SHT_infoBlockNumber){  //if the current block is the HT_info block, go to the next block
+        void* block;
+        if (BF_ReadBlock(header_info.fileDesc, header_info.SHT_infoBlockNumber, &block) == -1) return -1;
+        blockNumber = getNextBlock(header_info.fileDesc, header_info.SHT_infoBlockNumber);
+    }
+    if (BF_ReadBlock(header_info.fileDesc, blockNumber, &secRecordPtr) == -1) return -1;
+
+    while (blockNumber != -1){   //While there is a block left to search
+        if (BF_ReadBlock(header_info.fileDesc, blockNumber, &secRecordPtr) == -1) return -1;
+        //cout << "Checking block " << blockNumber << endl;
+        for(int i=1; i<=SECONDARY_RECORDS_PER_BLOCK; i++){
+            //cout << "   Checking secondary record location " << i << endl;
+            if (*static_cast<int*>(secRecordPtr) == 0){  //if no secondary record is saved in this location
+                memcpy(secRecordPtr, &secRecord, sizeof(SecondaryRecord));   //save the secondary record
+                BF_WriteBlock(header_info.fileDesc,blockNumber);
+                //cout << "Record inserted successfully!" << endl;
+                //SHT_CloseIndex(&header_info);
+                return 0;
+            }
+            secRecordPtr = static_cast<SecondaryRecord*>(secRecordPtr) + 1;  //go to the next record location
         }
         
         if (getNextBlock(header_info.fileDesc, blockNumber) == -1){  //if this block is the final and it is full generate a new
@@ -164,55 +255,57 @@ int HT_InsertEntry(HT_info header_info, Record record){
         //}
         blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
     }
+    
     return -1;
 }
 
 
 
 
-int HT_GetAllEntries(HT_info header_info, void* value){
-    int id = *(static_cast<int*>(value));  //primary key is integer
+int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht, void* value){
+    char* surname = (char*) value;  //search term is the surname (char*)
     int blocksExpanded = 1;
     
-    //Search for the entry 
-    int hashKey = hashFunction(id, header_info.numBuckets);
+    //Search for the entry
+    int hashKey = ((int) surname[8]) % header_info_sht.numBuckets;  //Temporary, make a better hash function
+    
     string blockNumberStr;
-    ifstream HTIndexFile(header_info.indexFilename);   //Open index file of the hashtable and search for line number "hashKey"
+    ifstream SHTIndexFile(header_info_sht.sIndexFilename);   //Open index file of the hashtable and search for line number "hashKey"
+    
+    getline(SHTIndexFile, blockNumberStr); //skip the first line
     for (int line=0; line<=hashKey; line++){
-        getline(HTIndexFile, blockNumberStr);   //line number n contains the location of the n-th block
+        getline(SHTIndexFile, blockNumberStr);   //line number n contains the location of the n-th block
     }
     
     int blockNumber = stoi(blockNumberStr);  //block number now contains the location of the required block
 
-    if (blockNumber == 0){  //if the current block is the HT_info block, go to the next block
-        blockNumber = getNextBlock(header_info.fileDesc, 0);
-        //cout << "Skipping header block 0" << endl;
+    if (blockNumber == header_info_sht.SHT_infoBlockNumber){  //if the current block is the HT_info block, go to the next block
+        blockNumber = getNextBlock(header_info_sht.fileDesc, header_info_sht.SHT_infoBlockNumber);
+        cout << "Skipping header block " << header_info_sht.SHT_infoBlockNumber << endl;
         blocksExpanded++;
     }
     
 
-    void* recordPtr;
+    void* secRecordPtr;
     while (blockNumber != -1){   //While there is a block left to search
-        if (BF_ReadBlock(header_info.fileDesc, blockNumber, &recordPtr) == -1) return -1;
-        for(int i=1; i<=RECORDS_PER_BLOCK; i++){
-            Record curRecord;
-            memcpy(&curRecord,recordPtr,sizeof(Record)); //copy the current record from block to curRecord variable
-            if (curRecord.id == id) {  //if the retrieved record is the required, search is completed
-                //cout << "Record with id " << id << " found!" << endl;
-                //cout << "{" << curRecord.id << "," << curRecord.name << "," << curRecord.surname << "," << curRecord.address << "}"  << endl;
-                //cout << "Expanded " << blocksExpanded << " blocks." << endl;
-                return blocksExpanded;
+        if (BF_ReadBlock(header_info_sht.fileDesc, blockNumber, &secRecordPtr) == -1) return -1;
+        for(int i=1; i<=SECONDARY_RECORDS_PER_BLOCK; i++){
+            SecondaryRecord curSecRecord;
+            memcpy(&curSecRecord,secRecordPtr,sizeof(SecondaryRecord)); //copy the current record from block to curRecord variable
+            if (strcmp(curSecRecord.surname, surname) == 0) {  //if the retrieved secondary record surname is the required, search the block it points
+                cout << "Record with surname " << surname << " found at block" << curSecRecord.blockId << endl;
+                printOcurrences(header_info_sht.fileDesc, surname, curSecRecord.blockId); //SEARCH curSecRecord.blockId for every occurance of surname
             }
-            recordPtr = static_cast<Record*>(recordPtr) + 1;
+            secRecordPtr = static_cast<SecondaryRecord*>(secRecordPtr) + 1;
         }
-        blockNumber = getNextBlock(header_info.fileDesc, blockNumber); //Go to the next block
+        blockNumber = getNextBlock(header_info_sht.fileDesc, blockNumber); //Go to the next block
         blocksExpanded++;
     }
-    //cout << "Record with id " << id << " not found!" << endl;
-    return -1;
+    cout << "Record with surname " << surname << " not found!" << endl;
+    return blocksExpanded;
 }
 
-*/
+
 /*
 //------------------------------------Utility Functions------------------------------------------------------//
 int hashFunction(int id, int buckets){
@@ -239,8 +332,23 @@ void setNextBlock(int blockFile, int currentBlock, int nextBlock){
     memcpy(lastBlockBytes, &nextBlock, sizeof(int));  //copy the index of the next block to the end of the block
     BF_WriteBlock(blockFile,currentBlock);
 }
+*/
+void printOcurrences(int blockFile, char* surname, int blockId){   //Prints every ocurrence of surname in blockId (blockId is a pointer to Record block)
+    void* currentBlockPtr;
+    BF_ReadBlock(blockFile, blockId, &currentBlockPtr); //get a pointer to the start of the current block
+    for(int i=1; i<=RECORDS_PER_BLOCK; i++){
+        if (*static_cast<int*>(currentBlockPtr) != 0){ //if there is a record saved in this location, check if it is has the surname we are searching
+            Record curRecord;
+            memcpy(&curRecord,currentBlockPtr,sizeof(Record)); //copy the current record from block to curRecord variable
+            if (strcmp(curRecord.surname, surname) == 0) {
+                cout << "{" << curRecord.id << "," << curRecord.name << "," << curRecord.surname << "," << curRecord.address << "}"  << endl;
+            }
+        }
+        currentBlockPtr = static_cast<Record*>(currentBlockPtr) + 1;  //go to the next Record
+    }
+}
 
-void Read_From_File(HT_info header_info, string recordsFile){
+void Read_From_File(SHT_info header_info, string recordsFile){
 
 	Record rec;
 	ifstream myReadFile;
@@ -278,11 +386,10 @@ void Read_From_File(HT_info header_info, string recordsFile){
     		strcpy(rec.name,name.c_str());
     		strcpy(rec.surname,surname.c_str());
     		strcpy(rec.address,address.c_str());
-
-
-    		if (HT_InsertEntry(header_info,rec) != -1) cout << "Record with id " << rec.id << " inserted successfully!" << endl;
+        
+    		if (SHT_SecondaryInsertEntry(header_info,rec) != -1) cout << "Record with id " << rec.id << " inserted successfully!" << endl;
  		}
 	}
 	myReadFile.close();
 }
-*/
+
