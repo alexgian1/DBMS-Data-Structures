@@ -33,9 +33,7 @@ int hashStatistics(char* filename);
 */
 //----------------Utility Functions----------------//
 
-//int hashFunction(int id, int buckets);
-//int getNextBlock(int blockFile, int currentBlock);
-//void setNextBlock(int blockFile, int currentBlock, int nextBlock);
+int hashFunction(char* value, int buckets);
 
 void printOcurrences(int blockFile, char* surname, int blockId);
 

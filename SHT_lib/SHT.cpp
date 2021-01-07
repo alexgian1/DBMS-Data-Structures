@@ -180,7 +180,9 @@ int SHT_SecondaryInsertEntry(SHT_info header_info, Record record){
     strcpy(secRecord.surname,record.surname);
     secRecord.blockId = blockInserted;
 
-    hashKey = ((int) secRecord.surname[8]) % header_info.numBuckets;  //Temporary, make a better hash function
+    //hashKey = ((int) secRecord.surname[8]) % header_info.numBuckets;  //Temporary, make a better hash function
+    hashKey = hashFunction(secRecord.surname, header_info.numBuckets);
+    //cout << hashKey << endl;
     
     ifstream SHTIndexFile(header_info.sIndexFilename);   //Open secondary index file of the hashtable and search for line number "hashKey"
     getline(SHTIndexFile, blockNumberStr);  //Skip the first line
@@ -260,14 +262,15 @@ int SHT_SecondaryInsertEntry(SHT_info header_info, Record record){
 }
 
 
-
-
 int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht, void* value){
+    bool found = false;
     char* surname = (char*) value;  //search term is the surname (char*)
     int blocksExpanded = 1;
     
     //Search for the entry
-    int hashKey = ((int) surname[8]) % header_info_sht.numBuckets;  //Temporary, make a better hash function
+    //int hashKey = ((int) surname[8]) % header_info_sht.numBuckets;  //Temporary, make a better hash function
+    //cout << hashKey << endl;
+    int hashKey = hashFunction(surname, header_info_sht.numBuckets);
     
     string blockNumberStr;
     ifstream SHTIndexFile(header_info_sht.sIndexFilename);   //Open index file of the hashtable and search for line number "hashKey"
@@ -281,7 +284,7 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
 
     if (blockNumber == header_info_sht.SHT_infoBlockNumber){  //if the current block is the HT_info block, go to the next block
         blockNumber = getNextBlock(header_info_sht.fileDesc, header_info_sht.SHT_infoBlockNumber);
-        cout << "Skipping header block " << header_info_sht.SHT_infoBlockNumber << endl;
+        //cout << "Skipping header block " << header_info_sht.SHT_infoBlockNumber << endl;
         blocksExpanded++;
     }
     
@@ -293,46 +296,34 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
             SecondaryRecord curSecRecord;
             memcpy(&curSecRecord,secRecordPtr,sizeof(SecondaryRecord)); //copy the current record from block to curRecord variable
             if (strcmp(curSecRecord.surname, surname) == 0) {  //if the retrieved secondary record surname is the required, search the block it points
-                cout << "Record with surname " << surname << " found at block" << curSecRecord.blockId << endl;
+                //cout << "Record with surname " << surname << " found at block" << curSecRecord.blockId << endl;
                 printOcurrences(header_info_sht.fileDesc, surname, curSecRecord.blockId); //SEARCH curSecRecord.blockId for every occurance of surname
+                blocksExpanded++;
+                found = true;
             }
             secRecordPtr = static_cast<SecondaryRecord*>(secRecordPtr) + 1;
         }
         blockNumber = getNextBlock(header_info_sht.fileDesc, blockNumber); //Go to the next block
         blocksExpanded++;
     }
-    cout << "Record with surname " << surname << " not found!" << endl;
-    return blocksExpanded;
+
+    if (found) return blocksExpanded;
+    else return -1;
 }
 
 
-/*
+
 //------------------------------------Utility Functions------------------------------------------------------//
-int hashFunction(int id, int buckets){
-    return id%buckets;
+int hashFunction(char* value, int buckets){  //source: https://stackoverflow.com/questions/7666509/hash-function-for-string
+    unsigned long hash = 5381;
+    int c;
+
+    while (c = *value++)
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    return hash%buckets;
 }
 
-int getNextBlock(int blockFile, int currentBlock){
-    //Returns the index of the next block. If there is no block after the current, returns -1.
-    int nextBlockIndex;
-    void* currentBlockPtr;
-    
-    BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
-    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
-    if (lastBlockBytes == NULL) return -1;
-    memcpy(&nextBlockIndex, lastBlockBytes, sizeof(int));  //copy the index of the next block to the
-    return nextBlockIndex;
-}
-
-void setNextBlock(int blockFile, int currentBlock, int nextBlock){
-    //Sets the index of the next block.
-    void* currentBlockPtr;
-    BF_ReadBlock(blockFile,currentBlock, &currentBlockPtr); //get a pointer to the start of the current block
-    void* lastBlockBytes = static_cast<char*>(currentBlockPtr) + 512 - sizeof(int);  //point to the last 8 bytes (size of int) of the block
-    memcpy(lastBlockBytes, &nextBlock, sizeof(int));  //copy the index of the next block to the end of the block
-    BF_WriteBlock(blockFile,currentBlock);
-}
-*/
 void printOcurrences(int blockFile, char* surname, int blockId){   //Prints every ocurrence of surname in blockId (blockId is a pointer to Record block)
     void* currentBlockPtr;
     BF_ReadBlock(blockFile, blockId, &currentBlockPtr); //get a pointer to the start of the current block
