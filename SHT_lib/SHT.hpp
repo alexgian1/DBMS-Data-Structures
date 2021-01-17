@@ -27,10 +27,8 @@ int SHT_SecondaryInsertEntry(SHT_info header_info, Record record);
 
 int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht, void* value);
 
-/*
-int hashStatistics(char* filename);
+int SHT_hashStatistics(char* filename);
 
-*/
 //----------------Utility Functions----------------//
 
 int hashFunction(char* value, int buckets);

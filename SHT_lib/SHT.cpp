@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include "SHT.hpp"
 
@@ -311,6 +312,64 @@ int SHT_SecondaryGetAllEntries(SHT_info header_info_sht, HT_info header_info_ht,
     else return -1;
 }
 
+
+int SHT_hashStatistics(char* filename){
+    cout << "___________________________________________HASH STATISTICS___________________________________________" << endl;
+    SHT_info secondary_info = *SHT_OpenSecondaryIndex(filename);
+    int totalBlocks = 0;
+    int bucketsWithOverflowBlocks = 0;
+    double averageOverflowBlocks = 0;
+    int minRecords = 999999;  
+    int maxRecords = 0;  
+    double avgRecords = 0;
+
+    ifstream SHTIndexFile(filename);   //Open the secondary index file of the hashtable
+    string blockNumberStr;
+    getline(SHTIndexFile, blockNumberStr);  //Skip the first line
+    while(getline(SHTIndexFile, blockNumberStr)){     //Get all lines from the index file
+        int overflowBlocks = 0;
+        int blockNumber = stoi(blockNumberStr);
+        int firstBlock = blockNumber;
+
+        int secRecordsInBucket = 0;
+        
+        if (blockNumber == secondary_info.SHT_infoBlockNumber){  //if the current block is the SHT_info block, go to the next block
+            blockNumber = getNextBlock(secondary_info.fileDesc, secondary_info.SHT_infoBlockNumber);
+            totalBlocks++;
+        }
+
+        while (blockNumber != -1){   //While there is a block left to search
+            totalBlocks++;
+            if (blockNumber != firstBlock) overflowBlocks++;  //If this block is not the first of the bucket, it is an overflow block.
+
+            //Count the records in the current block
+            void* secRecordPtr;
+            BF_ReadBlock(secondary_info.fileDesc, blockNumber, &secRecordPtr);
+            for(int i=1; i<=SECONDARY_RECORDS_PER_BLOCK; i++){
+                SecondaryRecord curSecRecord;
+                if (*static_cast<int*>(secRecordPtr) != 0){  //if a record is saved in this location
+                    secRecordsInBucket++;
+                }
+                secRecordPtr = static_cast<SecondaryRecord*>(secRecordPtr) + 1;
+            }
+            blockNumber = getNextBlock(secondary_info.fileDesc, blockNumber); //Go to the next block
+        }
+        cout << "Overflow blocks in secondary record bucket " << firstBlock << ": " << overflowBlocks << endl;
+        if (overflowBlocks>0) bucketsWithOverflowBlocks++;
+        averageOverflowBlocks += static_cast<double>(overflowBlocks) / secondary_info.numBuckets;   //average overflow blocks per bucket
+        if (secRecordsInBucket < minRecords) minRecords = secRecordsInBucket;
+        if (secRecordsInBucket > maxRecords) maxRecords = secRecordsInBucket;
+        avgRecords += static_cast<double>(secRecordsInBucket) / secondary_info.numBuckets;
+    }
+
+    cout << "Total secondary record buckets with overflow blocks: " << bucketsWithOverflowBlocks << endl;
+    cout << "Average overflow blocks per secondary record bucket: " << averageOverflowBlocks << endl;
+    cout << "Total secondary record blocks in file: " << totalBlocks << endl;
+    cout << "Minimum secondary records per bucket: " << minRecords << endl;
+    cout << "Maximum secondary records per bucket: " << maxRecords << endl;
+    cout << "Average secondary records per bucket: " << avgRecords << endl;
+    return 0;
+}
 
 
 //------------------------------------Utility Functions------------------------------------------------------//

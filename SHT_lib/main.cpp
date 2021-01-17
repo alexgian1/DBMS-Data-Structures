@@ -52,7 +52,9 @@ int main(){
 
     //Search non-exitent value
     if (SHT_SecondaryGetAllEntries(sIndex, pIndex, strValuesToSearch[2]) != -1) cout << "Record with surname " << strValuesToSearch[2] << " found!" << endl << endl;
-    else cout<< "Record with surname " << strValuesToSearch[2] << " not found!" << endl << endl;    
+    else cout<< "Record with surname " << strValuesToSearch[2] << " not found!" << endl << endl; 
+
+    SHT_hashStatistics("secondaryIndex");   
 
     HT_CloseIndex(&pIndex);
     SHT_CloseSecondaryIndex(&sIndex);
